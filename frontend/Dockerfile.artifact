@@ -1,0 +1,17 @@
+FROM imbios/bun-node:1-20-slim
+
+WORKDIR /usr/src/app
+
+USER root
+
+RUN apt-get update && apt-get install -y ca-certificates wget curl
+
+COPY frontend /usr/src/app
+
+RUN chown 65534:65534 /usr/src/app -R
+
+USER 65534
+
+RUN bun install
+
+CMD bun run build && bun run start

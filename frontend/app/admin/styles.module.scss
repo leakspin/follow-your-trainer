@@ -1,0 +1,13 @@
+.tabContainer {
+    margin-top: 10px;
+    
+    > div {
+        visibility: hidden;
+        display: none;
+    }
+}
+
+.visible {
+    visibility: visible !important;
+    display: block !important;
+}

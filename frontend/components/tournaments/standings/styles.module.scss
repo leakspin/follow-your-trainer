@@ -1,0 +1,50 @@
+.marginTopBottom {
+    margin: 10px 0;
+}
+
+.button {
+    width: 100%;
+    border-radius: 0;
+}
+
+.buttons {
+    display: flex;
+}
+
+.noWrap {
+    white-space: nowrap;
+}
+
+.filters {
+    border-radius: var(--bulma-radius);
+    border: var(--bulma-control-border-width) solid hsl(var(--bulma-input-h), var(--bulma-input-s), calc(var(--bulma-input-border-l) + var(--bulma-input-border-l-delta)));
+}
+
+.filtersHeader {
+    padding: 5px 2px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.filtersContent {
+    padding: 5px;
+}
+
+.title {
+    margin-left: 4px;
+}
+
+.countryFilter {
+    display: flex;
+    flex-wrap: wrap;
+
+    > div {
+        padding: 2px 5px;
+        cursor: pointer;
+        margin: 0 2px;
+    }
+}
+
+.active {
+    background-color: var(--bulma-primary-100);
+}

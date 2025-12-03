@@ -1,0 +1,36 @@
+@import '../node_modules/bulma/bulma.scss';
+
+html.modal-open {
+    overflow: hidden
+}
+
+.KofiContainer .KofiButton {
+    margin-bottom: 16px !important
+}
+
+.field {
+    margin-bottom: var(--bulma-block-spacing)
+}
+
+.pointer {
+    cursor: pointer
+}
+
+.not-allowed {
+    cursor: not-allowed;
+}
+
+footer.footer {
+    margin-top: 10px;
+}
+
+@media only screen and (max-width: 600px) {
+    main.container {
+        padding: 0 10px
+    }
+
+    .modal {
+        width: 100vw;
+        height: 100vh;
+    }
+}

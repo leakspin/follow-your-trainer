@@ -1,0 +1,26 @@
+FROM trafex/php-nginx:3.6.0
+
+USER root
+
+RUN apk add --no-cache \
+    php83-pdo \
+    php83-pgsql \
+    php83-pdo_pgsql \
+    php83-sqlite3 \
+    php83-pdo_sqlite
+
+RUN mkdir /.composer
+
+COPY backend/docker/composer-install.sh /composer-install.sh
+
+RUN /composer-install.sh
+
+COPY backend/docker/default.conf /etc/nginx/conf.d/default.conf
+
+COPY backend/src/ /var/www/html
+
+RUN chown 65534:65534 /var/www/html -R
+
+USER 65534
+
+RUN composer install --prefer-dist --no-progress --no-dev

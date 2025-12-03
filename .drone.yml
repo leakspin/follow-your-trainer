@@ -1,0 +1,194 @@
+kind: pipeline
+type: docker
+name: build-backend
+
+workspace:
+  path: /drone/src/
+
+steps:
+  - name: restore-cache
+    image: meltwater/drone-cache
+    pull: always
+    volumes:
+      - name: cache
+        path: /tmp/cache
+    settings:
+      backend: filesystem
+      restore: true
+      cache-key: "{{ checksum 'backend/src/composer.lock' }}"
+      archive_format: "gzip"
+      remote_root: "/tmp/cache"
+      mount:
+        - backend/src/vendor
+        - backend/src/tools/php-cs-fixer/vendor
+
+  - name: composer install and validate
+    image: <insert PHP 8.3 image here>
+    commands:
+      - composer validate --working-dir=backend/src/ --strict
+      - composer install --working-dir=backend/src/ --prefer-dist --no-progress --no-dev
+      - composer install --working-dir=backend/src/tools/php-cs-fixer --prefer-dist --no-progress
+    depends_on:
+      - "restore-cache"
+
+  - name: rebuild-cache
+    image: meltwater/drone-cache
+    pull: always
+    detach: true
+    volumes:
+      - name: cache
+        path: /tmp/cache
+    settings:
+      backend: filesystem
+      rebuild: true
+      cache-key: "{{ checksum 'backend/src/composer.lock' }}"
+      archive_format: "gzip"
+      remote_root: "/tmp/cache"
+      mount:
+        - backend/src/vendor
+        - backend/src/tools/php-cs-fixer/vendor
+    depends_on:
+      - "composer install and validate"
+
+  - name: cs fixer check
+    image: <insert PHP 8.3 image here>
+    commands:
+      - cd backend/src
+      - php tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --dry-run 
+    depends_on:
+      - "composer install and validate"
+      
+  - name: generate docker image
+    image: plugins/docker
+    settings:
+      dockerfile: backend/Dockerfile.artifact
+      repo: leakspin/follow-your-trainer-backend
+      username: leakspin
+      password:
+        from_secret: <private registry token>
+      registry: <private registry>
+      tags: 
+        - latest
+        - ${DRONE_COMMIT}
+    depends_on:
+      - "cs fixer check"
+    when:
+      branch:
+      - main
+
+  - name: tell coolify to deploy
+    image: curlimages/curl
+    environment:
+      COOLIFY_TOKEN:
+        from_secret: coolify_token
+    commands:
+      - "curl --request GET --url <custom Coolify instance> --header \"Authorization: Bearer $$COOLIFY_TOKEN\""
+    depends_on:
+      - "generate docker image"
+    when:
+      branch:
+      - main
+
+volumes:
+  - name: cache
+    host:
+      path: /tmp/cache
+
+trigger:
+  event:
+    - custom
+    - push
+    - promote
+
+---
+
+kind: pipeline
+type: docker
+name: build-frontend
+
+workspace:
+  path: /drone/src/
+
+steps:
+  - name: restore-cache
+    image: meltwater/drone-cache
+    pull: always
+    volumes:
+      - name: cache
+        path: /tmp/cache
+    settings:
+      backend: filesystem
+      restore: true
+      cache-key: "{{ checksum 'frontend/bun.lockb' }}"
+      archive_format: "gzip"
+      remote_root: "/tmp/cache"
+      mount:
+        - frontend/node_modules
+
+  - name: bun install
+    image: imbios/bun-node:1-20-slim
+    commands:
+      - cd frontend
+      - bun install
+    depends_on:
+      - "restore-cache"
+
+  - name: rebuild-cache
+    image: meltwater/drone-cache
+    pull: always
+    detach: true
+    volumes:
+      - name: cache
+        path: /tmp/cache
+    settings:
+      backend: filesystem
+      rebuild: true
+      cache-key: "{{ checksum 'frontend/bun.lockb' }}"
+      archive_format: "gzip"
+      remote_root: "/tmp/cache"
+      mount:
+        - frontend/node_modules
+    depends_on:
+      - "bun install"
+
+  - name: generate docker image
+    image: plugins/docker
+    settings:
+      dockerfile: frontend/Dockerfile.artifact
+      repo: leakspin/follow-your-trainer-frontend
+      username: leakspin
+      password:
+        from_secret: <private registry token>
+      registry: <private registry>
+      tags: 
+        - latest
+        - ${DRONE_COMMIT}
+    depends_on:
+      - "bun install"
+    when:
+      branch:
+      - main
+
+  - name: tell coolify to deploy
+    image: curlimages/curl
+    environment:
+      COOLIFY_TOKEN:
+        from_secret: coolify_token
+    commands:
+      - "curl --request GET --url <custom Coolify instance> --header \"Authorization: Bearer $$COOLIFY_TOKEN\""
+    depends_on:
+      - "generate docker image"
+    when:
+      branch:
+      - main
+
+volumes:
+  - name: cache
+    host:
+      path: /tmp/cache
+
+trigger:
+  event:
+    - custom
+    - push
+    - promote
